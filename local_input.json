@@ -1,0 +1,14 @@
+{
+  "startUrls": [
+    { "url": "https://curlsask.ca/contact/" },
+    { "url": "https://www.nicherecruitment.ca/contact-us.html" },
+    { "url": "https://www.kitchener.ca/recreation-and-sports/community-centres/victoria-hills-community-centre/" },
+    {"url":  "https://www.adinfosys.net"}
+  ],
+  "maxSites": 25,
+  "maxPagesPerSite": 4,
+  "extractSocialLinks": true,
+  "outputCsv": true,
+  "outputXlsx": true,
+  "pushEmptyRecord": false
+}

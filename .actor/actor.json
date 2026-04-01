@@ -1,0 +1,10 @@
+{
+  "actorSpecification": 1,
+  "name": "website-contact-extractor",
+  "version": "0.1",
+  "title": "Website Contact Extractor",
+  "description": "Extract emails, phones, and social links from websites.",
+  "input": "../INPUT_SCHEMA.json",
+  "output": "./output_schema.json",
+  "datasetSchema": "./dataset_schema.json"
+}

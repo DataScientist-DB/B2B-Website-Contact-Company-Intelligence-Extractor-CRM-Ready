@@ -1,0 +1,32 @@
+{
+  "title": "Website Contact Extractor Dataset",
+  "type": "object",
+  "schemaVersion": 1,
+  "properties": {
+    "inputUrl": { "type": "string" },
+    "finalUrl": { "type": "string" },
+    "status": { "type": "string", "enum": ["OK", "EMPTY", "FAILED"] },
+
+    "bestEmail": { "type": ["string", "null"] },
+    "bestPhone": { "type": ["string", "null"] },
+    "contactPage": { "type": ["string", "null"] },
+    "addressText": { "type": ["string", "null"] },
+
+    "allEmails": { "type": "string" },
+    "allPhones": { "type": "string" },
+    "evidenceCompact": { "type": "string" },
+    "error": { "type": "string" },
+
+    "emails": { "type": "array", "items": { "type": "string" } },
+    "phones": { "type": "array", "items": { "type": "string" } },
+
+    "socialLinks": {
+      "type": "object",
+      "additionalProperties": { "type": "string" }
+    },
+
+    "evidence": { "type": "array", "items": {} }
+  },
+  "required": ["inputUrl", "finalUrl", "status", "emails", "phones", "socialLinks", "evidence"],
+  "additionalProperties": true
+}

@@ -1,0 +1,65 @@
+{
+  "title": "Website Contact Extractor – Input",
+  "type": "object",
+  "schemaVersion": 1,
+  "properties": {
+    "startUrls": {
+      "title": "Websites to scan",
+      "type": "array",
+      "description": "Paste one website per line (or add multiple URLs). The Actor will return one summary row per website.",
+      "editor": "requestListSources",
+      "default": [
+        { "url": "https://www.redcross.org" },
+        { "url": "https://www.habitat.org" },
+        {"url": "https://www.adinfosys.net"}
+      ]
+    },
+
+    "maxSites": {
+      "title": "Max websites per run",
+      "type": "integer",
+      "description": "Safety limit to keep runs fast and cheap (recommended 25–100). Extra URLs will be ignored.",
+      "default": 25,
+      "minimum": 1,
+      "maximum": 500
+    },
+
+    "maxPagesPerSite": {
+      "title": "Max extra pages per site",
+      "type": "integer",
+      "description": "How many additional internal pages (contact/about/support/help) to scan besides the homepage. Keep low for speed.",
+      "default": 2,
+      "minimum": 0,
+      "maximum": 10
+    },
+
+    "extractSocialLinks": {
+      "title": "Extract social links",
+      "type": "boolean",
+      "description": "Extract social profile links found on the homepage/contact pages (passive; does not crawl social sites).",
+      "default": true
+    },
+
+    "pushEmptyRecord": {
+      "title": "Push EMPTY record when nothing found",
+      "type": "boolean",
+      "description": "If true, pushes a placeholder row when no contacts are found (useful for tracking coverage).",
+      "default": false
+    },
+
+    "outputCsv": {
+      "title": "Export CSV (OUTPUT.csv)",
+      "type": "boolean",
+      "description": "Save OUTPUT.csv to Key-Value Store (and ./output locally).",
+      "default": true
+    },
+
+    "outputXlsx": {
+      "title": "Export XLSX (OUTPUT.xlsx)",
+      "type": "boolean",
+      "description": "Save OUTPUT.xlsx to Key-Value Store (and ./output locally).",
+      "default": true
+    }
+  },
+  "required": ["startUrls"]
+}

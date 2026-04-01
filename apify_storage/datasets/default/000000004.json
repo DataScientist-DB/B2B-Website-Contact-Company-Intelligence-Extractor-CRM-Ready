@@ -1,0 +1,49 @@
+{
+  "organization_name": "Transport Planning, Road Design",
+  "industry": "Recruitment / HR",
+  "country": null,
+  "linkedin_company_url": null,
+  "company_size_estimate": null,
+  "contact_form_url": "https://www.adinfosys.net/contact",
+  "google_maps_url": null,
+  "input_url": "https://www.adinfosys.net",
+  "final_url": "https://www.adinfosys.net/",
+  "best_email": "a_arakelyan@adinfosys.net",
+  "best_phone": "+374 77 421659",
+  "emails": [
+    "a_arakelyan@adinfosys.net"
+  ],
+  "phones": [
+    "+374 77 421659",
+    "+374 91 421659"
+  ],
+  "address_text": "37 Israelyan St",
+  "socials": {},
+  "contact_page": "https://www.adinfosys.net/contact",
+  "evidence": [
+    {
+      "type": "email",
+      "value": "a_arakelyan@adinfosys.net",
+      "sourceUrl": "https://www.adinfosys.net/contact"
+    },
+    {
+      "type": "phone",
+      "value": "+374 77 421659",
+      "sourceUrl": "https://www.adinfosys.net/contact"
+    },
+    {
+      "type": "phone",
+      "value": "+374 91 421659",
+      "sourceUrl": "https://www.adinfosys.net/contact"
+    }
+  ],
+  "status": "OK",
+  "error": null,
+  "emails_count": 1,
+  "phones_count": 2,
+  "socials_count": 0,
+  "best_email_role": "other",
+  "confidence_email": 0.7,
+  "confidence_phone": 0.8,
+  "pages_scanned_count": 2
+}

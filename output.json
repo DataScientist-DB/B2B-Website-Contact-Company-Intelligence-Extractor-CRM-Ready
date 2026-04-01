@@ -1,0 +1,64 @@
+[
+  {
+    "inputUrl": "https://www.redcross.org",
+    "finalUrl": "https://www.redcross.org/",
+    "status": "OK",
+    "bestEmail": null,
+    "bestPhone": "+1 844-782-9441",
+    "contactPage": "https://www.redcross.org/get-help/disaster-relief-and-recovery-services/contact-and-locate-loved-ones.html",
+    "addressText": null,
+    "allEmails": "",
+    "allPhones": "+1 844-782-9441, +1 877-272-7337",
+    "evidenceCompact": "phone:+1 844-782-9441 @ https://www.redcross.org/get-help/disaster-relief-and-recovery-services/contact-and-locate-loved-ones.html | phone:+1 877-272-7337 @ https://www.redcross.org/get-help/disaster-relief-and-recovery-services/contact-and-locate-loved-ones.html",
+    "error": null,
+    "emails": [],
+    "phones": [
+      "+1 844-782-9441",
+      "+1 877-272-7337"
+    ],
+    "socialLinks": {},
+    "evidence": [
+      {
+        "type": "phone",
+        "value": "+1 844-782-9441",
+        "sourceUrl": "https://www.redcross.org/get-help/disaster-relief-and-recovery-services/contact-and-locate-loved-ones.html"
+      },
+      {
+        "type": "phone",
+        "value": "+1 877-272-7337",
+        "sourceUrl": "https://www.redcross.org/get-help/disaster-relief-and-recovery-services/contact-and-locate-loved-ones.html"
+      }
+    ]
+  },
+  {
+    "inputUrl": "https://www.habitat.org",
+    "finalUrl": "https://www.habitat.org/",
+    "status": "OK",
+    "bestEmail": null,
+    "bestPhone": "+1 229-924-6935",
+    "contactPage": "https://www.habitat.org/contact",
+    "addressText": null,
+    "allEmails": "",
+    "allPhones": "+1 229-924-6935, +1 800-422-4828",
+    "evidenceCompact": "phone:+1 229-924-6935 @ https://www.habitat.org/contact | phone:+1 800-422-4828 @ https://www.habitat.org/contact",
+    "error": null,
+    "emails": [],
+    "phones": [
+      "+1 229-924-6935",
+      "+1 800-422-4828"
+    ],
+    "socialLinks": {},
+    "evidence": [
+      {
+        "type": "phone",
+        "value": "+1 229-924-6935",
+        "sourceUrl": "https://www.habitat.org/contact"
+      },
+      {
+        "type": "phone",
+        "value": "+1 800-422-4828",
+        "sourceUrl": "https://www.habitat.org/contact"
+      }
+    ]
+  }
+]

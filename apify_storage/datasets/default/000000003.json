@@ -1,0 +1,142 @@
+{
+  "organization_name": "City of Kitchener",
+  "industry": "Recruitment / HR",
+  "country": "Canada",
+  "linkedin_company_url": "https://www.linkedin.com/company/city-of-kitchener/",
+  "company_size_estimate": null,
+  "contact_form_url": null,
+  "google_maps_url": "https://maps.app.goo.gl/afmjTpKSif7dPUWA9",
+  "input_url": "https://www.kitchener.ca/recreation-and-sports/community-centres/victoria-hills-community-centre/",
+  "final_url": "https://www.kitchener.ca/recreation-and-sports/community-centres/victoria-hills-community-centre/",
+  "best_email": "info@kitchener.ca",
+  "best_phone": "+1 877-351-9857 ext. 1",
+  "emails": [
+    "info@kitchener.ca",
+    "victoriahillscc@kitchener.ca"
+  ],
+  "phones": [
+    "+1 519-570-9777",
+    "+1 519-575-4400",
+    "+1 519-575-4608",
+    "+1 519-603-0223",
+    "+1 519-741-2345",
+    "+1 519-741-2717",
+    "+1 844-437-3247",
+    "+1 866-969-9994",
+    "+1 877-351-9857",
+    "+1 877-351-9857 ext. 1",
+    "+1 877-688-5501",
+    "+1 888-420-1777",
+    "18773519857,1"
+  ],
+  "address_text": "200 King Street West",
+  "socials": {
+    "linkedin": "https://www.linkedin.com/company/city-of-kitchener/",
+    "facebook": "http://www.facebook.com/cityofkitchener",
+    "twitter": "https://twitter.com/citykitchener",
+    "instagram": "http://www.instagram.com/cityofkitchener",
+    "youtube": "http://www.youtube.com/cityofkitchener"
+  },
+  "contact_page": "https://www.kitchener.ca/living-in-kitchener/contact-us/",
+  "evidence": [
+    {
+      "type": "email",
+      "value": "info@kitchener.ca",
+      "sourceUrl": "https://www.kitchener.ca/recreation-and-sports/community-centres/victoria-hills-community-centre/"
+    },
+    {
+      "type": "email",
+      "value": "victoriahillscc@kitchener.ca",
+      "sourceUrl": "https://www.kitchener.ca/recreation-and-sports/community-centres/victoria-hills-community-centre/"
+    },
+    {
+      "type": "phone",
+      "value": "+1 519-741-2345",
+      "sourceUrl": "https://www.kitchener.ca/recreation-and-sports/community-centres/victoria-hills-community-centre/"
+    },
+    {
+      "type": "phone",
+      "value": "+1 519-741-2717",
+      "sourceUrl": "https://www.kitchener.ca/recreation-and-sports/community-centres/victoria-hills-community-centre/"
+    },
+    {
+      "type": "phone",
+      "value": "+1 866-969-9994",
+      "sourceUrl": "https://www.kitchener.ca/recreation-and-sports/community-centres/victoria-hills-community-centre/"
+    },
+    {
+      "type": "email",
+      "value": "info@kitchener.ca",
+      "sourceUrl": "https://www.kitchener.ca/living-in-kitchener/contact-us/"
+    },
+    {
+      "type": "phone",
+      "value": "+1 519-570-9777",
+      "sourceUrl": "https://www.kitchener.ca/living-in-kitchener/contact-us/"
+    },
+    {
+      "type": "phone",
+      "value": "+1 519-575-4400",
+      "sourceUrl": "https://www.kitchener.ca/living-in-kitchener/contact-us/"
+    },
+    {
+      "type": "phone",
+      "value": "+1 519-575-4608",
+      "sourceUrl": "https://www.kitchener.ca/living-in-kitchener/contact-us/"
+    },
+    {
+      "type": "phone",
+      "value": "+1 519-603-0223",
+      "sourceUrl": "https://www.kitchener.ca/living-in-kitchener/contact-us/"
+    },
+    {
+      "type": "phone",
+      "value": "+1 519-741-2345",
+      "sourceUrl": "https://www.kitchener.ca/living-in-kitchener/contact-us/"
+    },
+    {
+      "type": "phone",
+      "value": "+1 844-437-3247",
+      "sourceUrl": "https://www.kitchener.ca/living-in-kitchener/contact-us/"
+    },
+    {
+      "type": "phone",
+      "value": "+1 866-969-9994",
+      "sourceUrl": "https://www.kitchener.ca/living-in-kitchener/contact-us/"
+    },
+    {
+      "type": "phone",
+      "value": "+1 877-351-9857",
+      "sourceUrl": "https://www.kitchener.ca/living-in-kitchener/contact-us/"
+    },
+    {
+      "type": "phone",
+      "value": "+1 877-351-9857 ext. 1",
+      "sourceUrl": "https://www.kitchener.ca/living-in-kitchener/contact-us/"
+    },
+    {
+      "type": "phone",
+      "value": "+1 877-688-5501",
+      "sourceUrl": "https://www.kitchener.ca/living-in-kitchener/contact-us/"
+    },
+    {
+      "type": "phone",
+      "value": "+1 888-420-1777",
+      "sourceUrl": "https://www.kitchener.ca/living-in-kitchener/contact-us/"
+    },
+    {
+      "type": "phone",
+      "value": "18773519857,1",
+      "sourceUrl": "https://www.kitchener.ca/living-in-kitchener/contact-us/"
+    }
+  ],
+  "status": "OK",
+  "error": null,
+  "emails_count": 2,
+  "phones_count": 13,
+  "socials_count": 5,
+  "best_email_role": "general",
+  "confidence_email": 0.85,
+  "confidence_phone": 0.8,
+  "pages_scanned_count": 2
+}

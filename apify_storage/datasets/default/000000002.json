@@ -1,0 +1,48 @@
+{
+  "organization_name": "Niche Recruitment & Consulting",
+  "industry": "Recruitment / HR",
+  "country": "Canada",
+  "linkedin_company_url": "https://www.linkedin.com/company/niche-recruitment?trk=hb_tab_compy_id_1751996",
+  "company_size_estimate": null,
+  "contact_form_url": null,
+  "google_maps_url": null,
+  "input_url": "https://www.nicherecruitment.ca/contact-us.html",
+  "final_url": "https://www.nicherecruitment.ca/contact-us.html",
+  "best_email": "resumes@nicherecruitment.ca",
+  "best_phone": "+1 647-352-5022",
+  "emails": [
+    "resumes@nicherecruitment.ca"
+  ],
+  "phones": [
+    "+1 647-352-5022"
+  ],
+  "address_text": null,
+  "socials": {
+    "linkedin": "https://www.linkedin.com/company/niche-recruitment?trk=hb_tab_compy_id_1751996",
+    "facebook": "http://www.facebook.com/NicheRecruitment",
+    "twitter": "http://twitter.com/nicherecruit",
+    "instagram": "https://www.instagram.com/niche_recruitment/"
+  },
+  "contact_page": null,
+  "evidence": [
+    {
+      "type": "email",
+      "value": "resumes@nicherecruitment.ca",
+      "sourceUrl": "https://www.nicherecruitment.ca/contact-us.html"
+    },
+    {
+      "type": "phone",
+      "value": "+1 647-352-5022",
+      "sourceUrl": "https://www.nicherecruitment.ca/contact-us.html"
+    }
+  ],
+  "status": "OK",
+  "error": null,
+  "emails_count": 1,
+  "phones_count": 1,
+  "socials_count": 4,
+  "best_email_role": "other",
+  "confidence_email": 0.7,
+  "confidence_phone": 0.75,
+  "pages_scanned_count": 1
+}

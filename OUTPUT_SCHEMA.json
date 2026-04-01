@@ -1,0 +1,81 @@
+{
+  "actorOutputSchemaVersion": 1,
+  "title": "Website Contact Extractor – Output",
+  "type": "object",
+  "schemaVersion": 1,
+  "properties": {
+    "inputUrl": { "type": "string", "description": "Input website URL." },
+    "finalUrl": { "type": "string", "description": "Final resolved URL after redirects." },
+    "status": {
+      "type": "string",
+      "description": "OK if at least one contact item found; PARTIAL if none; FAILED on hard errors.",
+      "enum": ["OK", "PARTIAL", "FAILED"]
+    },
+
+    "bestEmail": { "type": ["string", "null"] },
+    "bestPhone": { "type": ["string", "null"] },
+    "contactPage": { "type": ["string", "null"] },
+    "addressText": { "type": ["string", "null"] },
+
+    "allEmails": {
+      "type": "string",
+      "description": "Comma-separated list of all discovered emails (table-friendly)."
+    },
+    "allPhones": {
+      "type": "string",
+      "description": "Comma-separated list of all discovered phones (table-friendly)."
+    },
+    "evidenceCompact": {
+      "type": "string",
+      "description": "Compact evidence string for table exports (e.g., 'phone:+1... @ /contact | email:info@... @ /about')."
+    },
+    "error": {
+      "type": ["string", "null"],
+      "description": "Error message when status is FAILED (or for debugging)."
+    },
+
+    "emails": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "phones": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+
+    "socialLinks": {
+      "type": "object",
+      "additionalProperties": { "type": "string" }
+    },
+
+    "evidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "type": { "type": "string", "enum": ["email", "phone"] },
+          "value": { "type": "string" },
+          "sourceUrl": { "type": "string" }
+        },
+        "required": ["type", "value", "sourceUrl"]
+      }
+    }
+  },
+  "required": [
+    "inputUrl",
+    "finalUrl",
+    "status",
+    "bestEmail",
+    "bestPhone",
+    "contactPage",
+    "addressText",
+    "allEmails",
+    "allPhones",
+    "evidenceCompact",
+    "error",
+    "emails",
+    "phones",
+    "socialLinks",
+    "evidence"
+  ]
+}
