@@ -113,16 +113,20 @@ def normalize_urls(raw: str) -> List[str]:
 def extract_domain(value: Any) -> str:
     if value is None:
         return ""
+
     text = str(value).strip()
-    if not text:
-        return ""
-    try:
-        parsed = urlparse(text)
-        host = parsed.netloc or parsed.path.split("/")[0]
-        return host.lower().replace("www.", "")
-    except Exception:
+    if not text or text.lower() == "none":
         return ""
 
+    if not text.startswith(("http://", "https://")):
+        text = "https://" + text
+
+    try:
+        parsed = urlparse(text)
+        host = (parsed.netloc or "").lower().replace("www.", "")
+        return host
+    except Exception:
+        return ""
 
 def count_listish(value: Any) -> int:
     if value is None:
@@ -142,6 +146,25 @@ def flatten_cell(value: Any) -> str:
         return ""
     return str(value)
 
+def get_lead_quality(row: pd.Series) -> str:
+    score = 0
+
+    if row.get("email_count", 0) > 0:
+        score += 1
+    if row.get("phone_count", 0) > 0:
+        score += 1
+
+    linkedin_value = row.get("linkedin", "")
+    if linkedin_value and str(linkedin_value).strip().lower() not in {"", "none", "nan"}:
+        score += 1
+
+    if score >= 3:
+        return "High"
+    if score == 2:
+        return "Medium"
+    if score == 1:
+        return "Low"
+    return "Very Low"
 
 def save_outputs_locally(df: pd.DataFrame) -> tuple[str, str]:
     output_dir = "outputs"
@@ -164,14 +187,12 @@ def save_outputs_locally(df: pd.DataFrame) -> tuple[str, str]:
 def prepare_analytics(df: pd.DataFrame) -> pd.DataFrame:
     work = df.copy()
 
-    if "finalUrl" in work.columns:
-        url_source = "finalUrl"
-    elif "url" in work.columns:
-        url_source = "url"
-    elif "inputUrl" in work.columns:
-        url_source = "inputUrl"
-    else:
-        url_source = None
+    url_candidates = ["finalUrl", "url", "inputUrl", "website", "input_url"]
+    url_source = None
+    for col in url_candidates:
+        if col in work.columns:
+            url_source = col
+            break
 
     if url_source:
         work["domain"] = work[url_source].apply(extract_domain)
@@ -195,7 +216,6 @@ def prepare_analytics(df: pd.DataFrame) -> pd.DataFrame:
         work["organization_name"] = ""
 
     return work
-
 
 def build_actor_input(
     urls: List[str],
@@ -447,7 +467,10 @@ if st.session_state.get("last_dataset_id"):
     )
 
 if not df.empty:
+
+
     analytics_df = prepare_analytics(df)
+    analytics_df["lead_quality"] = analytics_df.apply(get_lead_quality, axis=1)
 
     total_items = len(analytics_df)
     total_emails = int(analytics_df["email_count"].sum())
@@ -472,7 +495,7 @@ if not df.empty:
     st.divider()
     st.subheader("Smart filters")
 
-    filter1, filter2, filter3 = st.columns(3)
+    filter1, filter2, filter3, filter4 = st.columns(4)
 
     countries = sorted(
         [
@@ -483,7 +506,7 @@ if not df.empty:
     selected_country = filter1.selectbox("Country", ["All"] + countries)
     selected_min_emails = filter2.selectbox("Minimum emails", [0, 1, 2, 3, 5], index=1)
     selected_min_phones = filter3.selectbox("Minimum phones", [0, 1, 2, 3, 5], index=0)
-
+    selected_quality = filter4.selectbox("Lead quality", ["All", "High", "Medium", "Low", "Very Low"])
     filtered_df = analytics_df.copy()
 
     if selected_country != "All":
@@ -491,7 +514,8 @@ if not df.empty:
 
     filtered_df = filtered_df[filtered_df["email_count"] >= selected_min_emails]
     filtered_df = filtered_df[filtered_df["phone_count"] >= selected_min_phones]
-
+    if selected_quality != "All":
+        filtered_df = filtered_df[filtered_df["lead_quality"] == selected_quality]
     st.divider()
     st.subheader("Lead intelligence")
 
@@ -530,6 +554,23 @@ if not df.empty:
     st.caption(f"Showing {len(filtered_df)} of {len(analytics_df)} records after filters.")
 
     preview_cols = [c for c in filtered_df.columns if c not in {"email_count", "phone_count", "domain"}]
+
+    preferred_preview_order = [
+        "organization_name",
+        "companyName",
+        "lead_quality",
+        "country",
+        "emails",
+        "phones",
+        "linkedin",
+        "url",
+        "finalUrl",
+        "inputUrl",
+    ]
+
+    ordered_preview_cols = [c for c in preferred_preview_order if c in preview_cols]
+    remaining_preview_cols = [c for c in preview_cols if c not in ordered_preview_cols]
+    preview_cols = ordered_preview_cols + remaining_preview_cols
     st.dataframe(filtered_df[preview_cols], use_container_width=True, height=420)
 
     st.subheader("Downloads")
