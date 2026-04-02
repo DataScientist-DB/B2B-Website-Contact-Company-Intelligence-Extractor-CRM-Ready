@@ -5,6 +5,8 @@ from datetime import datetime
 from typing import Any, Dict, List
 from urllib.parse import urlparse
 
+import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 import streamlit as st
 from dotenv import load_dotenv
@@ -61,6 +63,62 @@ PREFERRED_COLS = [
 DEFAULT_WEBSITES = """curlsask.ca/contact/
 nicherecruitment.ca/contact-us.html
 https://www.adinfosys.net"""
+
+# -------------------------------------------------
+# PAGE SETUP
+# -------------------------------------------------
+st.set_page_config(
+    page_title="B2B Website Contact Intelligence Dashboard",
+    page_icon="📇",
+    layout="wide",
+)
+
+st.markdown(
+    """
+    <style>
+        .block-container {
+            padding-top: 1.2rem;
+            padding-bottom: 2rem;
+            max-width: 1400px;
+        }
+
+        h1, h2, h3 {
+            letter-spacing: -0.02em;
+        }
+
+        .stMetric {
+            background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+            border: 1px solid rgba(128,128,128,0.18);
+            border-radius: 18px;
+            padding: 16px 18px;
+            box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+        }
+
+        div[data-testid="stDataFrame"] {
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid rgba(128,128,128,0.18);
+        }
+
+        .premium-banner {
+            padding: 1rem 1.2rem;
+            border-radius: 18px;
+            background: linear-gradient(135deg, rgba(34,197,94,0.10), rgba(59,130,246,0.10));
+            border: 1px solid rgba(128,128,128,0.16);
+            margin-bottom: 1rem;
+        }
+
+        .section-card {
+            padding: 1rem 1rem 0.6rem 1rem;
+            border-radius: 18px;
+            border: 1px solid rgba(128,128,128,0.14);
+            background: rgba(255,255,255,0.02);
+            margin-bottom: 1rem;
+        }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
 
 # -------------------------------------------------
 # HELPERS
@@ -128,6 +186,7 @@ def extract_domain(value: Any) -> str:
     except Exception:
         return ""
 
+
 def count_listish(value: Any) -> int:
     if value is None:
         return 0
@@ -146,11 +205,12 @@ def flatten_cell(value: Any) -> str:
         return ""
     return str(value)
 
+
 def get_lead_quality(row: pd.Series) -> str:
     score = 0
 
     if row.get("email_count", 0) > 0:
-        score += 1
+        score += 2
     if row.get("phone_count", 0) > 0:
         score += 1
 
@@ -165,6 +225,7 @@ def get_lead_quality(row: pd.Series) -> str:
     if score == 1:
         return "Low"
     return "Very Low"
+
 
 def save_outputs_locally(df: pd.DataFrame) -> tuple[str, str]:
     output_dir = "outputs"
@@ -215,7 +276,11 @@ def prepare_analytics(df: pd.DataFrame) -> pd.DataFrame:
     if "companyName" not in work.columns and "organization_name" not in work.columns:
         work["organization_name"] = ""
 
+    if "linkedin" not in work.columns:
+        work["linkedin"] = ""
+
     return work
+
 
 def build_actor_input(
     urls: List[str],
@@ -252,44 +317,264 @@ def validate_actor_id(actor_id: str) -> str:
         st.error("Actor ID must not contain spaces.")
         st.stop()
 
-    # Accept either raw actor ID like gBBp9t5KjUcEt1ESS
-    # or owner~actor-name format
     return actor_id
 
 
 # -------------------------------------------------
-# PAGE SETUP
+# DASHBOARD HELPERS
 # -------------------------------------------------
-st.set_page_config(
-    page_title="B2B Website Contact Intelligence Dashboard",
-    page_icon="📇",
-    layout="wide",
-)
+def safe_pct(num: float, den: float) -> float:
+    return round((num / den) * 100, 1) if den and den > 0 else 0.0
 
+
+def prepare_dashboard_df(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Normalize current scraped dataset into dashboard-friendly fields.
+    """
+    df = df.copy()
+
+    if "company_name" not in df.columns:
+        if "organization_name" in df.columns:
+            df["company_name"] = df["organization_name"]
+        elif "companyName" in df.columns:
+            df["company_name"] = df["companyName"]
+        else:
+            df["company_name"] = ""
+
+    if "website" not in df.columns:
+        for col in ["finalUrl", "url", "inputUrl"]:
+            if col in df.columns:
+                df["website"] = df[col]
+                break
+        if "website" not in df.columns:
+            df["website"] = ""
+
+    if "industry" not in df.columns:
+        df["industry"] = ""
+
+    if "employee_estimate" not in df.columns:
+        df["employee_estimate"] = 0
+
+    if "has_linkedin" not in df.columns:
+        if "linkedin" in df.columns:
+            df["has_linkedin"] = (
+                df["linkedin"]
+                .fillna("")
+                .astype(str)
+                .str.strip()
+                .str.lower()
+                .isin(["", "none", "nan"]) == False
+            )
+        else:
+            df["has_linkedin"] = False
+
+    if "has_contact_page" not in df.columns:
+        df["has_contact_page"] = False
+
+    if "has_about_page" not in df.columns:
+        df["has_about_page"] = False
+
+    if "status" not in df.columns:
+        df["status"] = ""
+
+    expected_cols = [
+        "company_name",
+        "website",
+        "industry",
+        "country",
+        "employee_estimate",
+        "email_count",
+        "phone_count",
+        "has_linkedin",
+        "has_contact_page",
+        "has_about_page",
+        "status",
+        "opportunity_score",
+    ]
+
+    for col in expected_cols:
+        if col not in df.columns:
+            if col in ["email_count", "phone_count", "employee_estimate", "opportunity_score"]:
+                df[col] = 0
+            elif col in ["has_linkedin", "has_contact_page", "has_about_page"]:
+                df[col] = False
+            else:
+                df[col] = ""
+
+    for col in ["email_count", "phone_count", "employee_estimate", "opportunity_score"]:
+        df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0)
+
+    for col in ["has_linkedin", "has_contact_page", "has_about_page"]:
+        df[col] = df[col].fillna(False).astype(bool)
+
+    df["crm_ready"] = df["email_count"] > 0
+
+    def readiness_tier(row: pd.Series) -> str:
+        if row["email_count"] > 0 and row["phone_count"] > 0 and row["has_linkedin"]:
+            return "High"
+        elif row["email_count"] > 0:
+            return "Medium"
+        return "Low"
+
+    df["readiness_tier"] = df.apply(readiness_tier, axis=1)
+
+    df["coverage_score"] = (
+        (df["email_count"] > 0).astype(int)
+        + (df["phone_count"] > 0).astype(int)
+        + df["has_linkedin"].astype(int)
+        + df["has_contact_page"].astype(int)
+        + df["has_about_page"].astype(int)
+    )
+
+    zero_mask = df["opportunity_score"].fillna(0) <= 0
+    df.loc[zero_mask, "opportunity_score"] = (
+        (df["email_count"] > 0).astype(int) * 40
+        + (df["phone_count"] > 0).astype(int) * 20
+        + df["has_linkedin"].astype(int) * 15
+        + df["has_contact_page"].astype(int) * 10
+        + df["has_about_page"].astype(int) * 5
+        + np.clip(pd.to_numeric(df["employee_estimate"], errors="coerce").fillna(0), 0, 1000) / 1000 * 10
+    ).round(1)
+
+    return df
+
+
+def render_kpis(df: pd.DataFrame) -> None:
+    total = len(df)
+    crm_ready_count = int(df["crm_ready"].sum())
+    with_phone = int((df["phone_count"] > 0).sum())
+    with_linkedin = int(df["has_linkedin"].sum())
+    avg_opportunity = round(df["opportunity_score"].mean(), 1) if total else 0.0
+
+    crm_ready_pct = safe_pct(crm_ready_count, total)
+    phone_pct = safe_pct(with_phone, total)
+    linkedin_pct = safe_pct(with_linkedin, total)
+
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("Total Companies", f"{total:,}")
+    c2.metric("CRM Ready", f"{crm_ready_count:,}", f"{crm_ready_pct}%")
+    c3.metric("With Phone", f"{with_phone:,}", f"{phone_pct}%")
+    c4.metric("Avg Opportunity Score", avg_opportunity)
+
+    c5, c6 = st.columns(2)
+    c5.metric("With LinkedIn", f"{with_linkedin:,}", f"{linkedin_pct}%")
+    c6.metric("High Readiness", f"{int((df['readiness_tier'] == 'High').sum()):,}")
+
+
+def render_top_opportunities(df: pd.DataFrame, top_n: int = 15) -> None:
+    st.subheader("Top Opportunities")
+    st.caption("Best leads ranked by contact coverage and opportunity score.")
+
+    cols_needed = [
+        "company_name",
+        "website",
+        "industry",
+        "country",
+        "email_count",
+        "phone_count",
+        "has_linkedin",
+        "readiness_tier",
+        "opportunity_score",
+    ]
+    safe_cols = [c for c in cols_needed if c in df.columns]
+
+    top_df = (
+        df.sort_values(
+            by=["opportunity_score", "email_count", "phone_count"],
+            ascending=[False, False, False],
+        )
+        .loc[:, safe_cols]
+        .head(top_n)
+        .rename(columns={
+            "company_name": "Company",
+            "website": "Website",
+            "industry": "Industry",
+            "country": "Country",
+            "email_count": "Emails",
+            "phone_count": "Phones",
+            "has_linkedin": "LinkedIn",
+            "readiness_tier": "Readiness",
+            "opportunity_score": "Opportunity Score",
+        })
+    )
+
+    st.dataframe(top_df, use_container_width=True, hide_index=True)
+
+
+def render_readiness_coverage_chart(df: pd.DataFrame) -> None:
+    st.subheader("Readiness vs Data Coverage")
+
+    chart_df = (
+        df.groupby("readiness_tier", dropna=False)
+        .agg(
+            companies=("website", "count"),
+            avg_coverage=("coverage_score", "mean"),
+            avg_opportunity=("opportunity_score", "mean"),
+        )
+        .reset_index()
+    )
+
+    order = {"High": 0, "Medium": 1, "Low": 2}
+    chart_df["sort_order"] = chart_df["readiness_tier"].map(order).fillna(99)
+    chart_df = chart_df.sort_values("sort_order").drop(columns=["sort_order"])
+
+    fig, ax = plt.subplots(figsize=(8, 4.5))
+    ax.bar(chart_df["readiness_tier"], chart_df["companies"])
+    ax.set_xlabel("Readiness Tier")
+    ax.set_ylabel("Companies")
+    ax.set_title("Companies by Readiness Tier")
+    st.pyplot(fig)
+
+    st.dataframe(
+        chart_df.rename(columns={
+            "readiness_tier": "Readiness Tier",
+            "companies": "Companies",
+            "avg_coverage": "Avg Coverage Score",
+            "avg_opportunity": "Avg Opportunity Score",
+        }),
+        use_container_width=True,
+        hide_index=True,
+    )
+
+
+def render_opportunity_distribution(df: pd.DataFrame) -> None:
+    st.subheader("Opportunity Score Distribution")
+
+    fig, ax = plt.subplots(figsize=(8, 4.5))
+    ax.hist(df["opportunity_score"].fillna(0), bins=20)
+    ax.set_xlabel("Opportunity Score")
+    ax.set_ylabel("Companies")
+    ax.set_title("Opportunity Score Distribution")
+    st.pyplot(fig)
+
+
+def highlight_opportunity(val: Any) -> str:
+    try:
+        val = float(val)
+    except Exception:
+        return ""
+
+    if val >= 70:
+        return "background-color: #d4edda"
+    elif val >= 40:
+        return "background-color: #fff3cd"
+    else:
+        return "background-color: #f8d7da"
+
+
+# -------------------------------------------------
+# HEADER
+# -------------------------------------------------
+st.title("B2B Website Contact & Company Intelligence Dashboard")
 st.markdown(
     """
-    <style>
-        .block-container {
-            padding-top: 1.5rem;
-            padding-bottom: 2rem;
-        }
-        .stMetric {
-            background: rgba(255,255,255,0.03);
-            border: 1px solid rgba(128,128,128,0.20);
-            border-radius: 16px;
-            padding: 14px 16px;
-        }
-        div[data-testid="stDataFrame"] {
-            border-radius: 14px;
-            overflow: hidden;
-        }
-    </style>
+    <div class="premium-banner">
+        <b>CRM-ready lead intelligence</b><br>
+        Run your Apify Actor, review extracted leads, filter results, and export clean contact datasets for outreach, sales, and research.
+    </div>
     """,
     unsafe_allow_html=True,
 )
-
-st.title("B2B Website Contact & Company Intelligence Dashboard")
-st.caption("Run your Apify Actor, review extracted leads, filter results, and export clean CRM-ready data.")
 
 # -------------------------------------------------
 # SIDEBAR
@@ -353,7 +638,7 @@ with top_right:
     timeout_minutes = st.number_input("Max wait time (minutes)", min_value=1, max_value=180, value=30, step=1)
 
 st.divider()
-
+st.markdown('<div class="section-card">', unsafe_allow_html=True)
 quick1, quick2, quick3, quick4 = st.columns(4)
 with quick1:
     st.metric("Configured maxSites", max_sites)
@@ -363,8 +648,9 @@ with quick3:
     st.metric("Social links", "On" if extract_social_links else "Off")
 with quick4:
     st.metric("Auto-save", "On" if auto_save_local else "Off")
+st.markdown("</div>", unsafe_allow_html=True)
 
-run_btn = st.button("▶ Run Apify Actor", type="primary", use_container_width=True)
+run_btn = st.button("▶ Run Data Extraction", type="primary", use_container_width=True)
 
 # -------------------------------------------------
 # RUN ACTOR
@@ -408,43 +694,48 @@ if run_btn:
 
     client = ApifyClientLite(token=token)
 
-    with st.status("Starting Actor run…", expanded=True) as status:
-        try:
-            run = client.start_actor_run(actor_id=actor_id, input_payload=actor_input)
-            st.session_state["last_run_id"] = run.id
-            status.write(f"Run started: **{run.id}** (status: {run.status})")
+    with st.spinner("Running extraction... this may take 20–60 seconds"):
+        with st.status("Starting Actor run…", expanded=True) as status:
+            try:
+                run = client.start_actor_run(actor_id=actor_id, input_payload=actor_input)
+                st.session_state["last_run_id"] = run.id
+                status.write(f"Run started: **{run.id}** (status: {run.status})")
 
-            status.update(label="Waiting for completion…", state="running")
-            finished = client.wait_for_finish(
-                run_id=run.id,
-                poll_seconds=3.0,
-                max_wait_seconds=int(timeout_minutes) * 60,
-            )
+                status.update(label="Waiting for completion…", state="running")
+                finished = client.wait_for_finish(
+                    run_id=run.id,
+                    poll_seconds=3.0,
+                    max_wait_seconds=int(timeout_minutes) * 60,
+                )
 
-            status.write(f"Finished with status: **{finished.status}**")
+                status.write(f"Finished with status: **{finished.status}**")
 
-            if finished.status != "SUCCEEDED":
-                status.update(label=f"Run finished: {finished.status}", state="error")
+                if finished.status != "SUCCEEDED":
+                    status.update(label=f"Run finished: {finished.status}", state="error")
+                    st.stop()
+
+                dataset_id = finished.default_dataset_id
+                if not dataset_id:
+                    status.update(label="No default dataset returned by run.", state="error")
+                    st.stop()
+
+                st.session_state["last_dataset_id"] = dataset_id
+                status.write(f"Default dataset: **{dataset_id}**")
+
+                status.update(label="Loading dataset items…", state="running")
+                items = client.list_all_dataset_items(dataset_id=dataset_id, page_size=1000)
+                st.session_state["last_items"] = items
+
+                status.update(
+                    label=f"✅ Extraction completed successfully — {len(items)} leads ready",
+                    state="complete",
+                )
+                st.success(f"Loaded {len(items)} leads. You can now filter, analyze, and export.")
+
+            except Exception as e:
+                status.update(label="Error", state="error")
+                st.exception(e)
                 st.stop()
-
-            dataset_id = finished.default_dataset_id
-            if not dataset_id:
-                status.update(label="No default dataset returned by run.", state="error")
-                st.stop()
-
-            st.session_state["last_dataset_id"] = dataset_id
-            status.write(f"Default dataset: **{dataset_id}**")
-
-            status.update(label="Loading dataset items…", state="running")
-            items = client.list_all_dataset_items(dataset_id=dataset_id, page_size=1000)
-            st.session_state["last_items"] = items
-
-            status.update(label=f"Done. Loaded {len(items)} items.", state="complete")
-
-        except Exception as e:
-            status.update(label="Error", state="error")
-            st.exception(e)
-            st.stop()
 
 # -------------------------------------------------
 # RESULTS
@@ -467,24 +758,8 @@ if st.session_state.get("last_dataset_id"):
     )
 
 if not df.empty:
-
-
     analytics_df = prepare_analytics(df)
     analytics_df["lead_quality"] = analytics_df.apply(get_lead_quality, axis=1)
-
-    total_items = len(analytics_df)
-    total_emails = int(analytics_df["email_count"].sum())
-    total_phones = int(analytics_df["phone_count"].sum())
-    unique_domains = int(analytics_df["domain"].replace("", pd.NA).dropna().nunique())
-
-    st.divider()
-    st.subheader("Executive summary")
-
-    s1, s2, s3, s4 = st.columns(4)
-    s1.metric("Leads captured", total_items)
-    s2.metric("Emails found", total_emails)
-    s3.metric("Phones found", total_phones)
-    s4.metric("Unique domains", unique_domains)
 
     if auto_save_local:
         csv_path, xlsx_path = save_outputs_locally(df)
@@ -493,7 +768,7 @@ if not df.empty:
         st.success(f"Saved locally:\n\nCSV: `{csv_path}`\n\nXLSX: `{xlsx_path}`")
 
     st.divider()
-    st.subheader("Smart filters")
+    st.markdown("## Smart Filters")
 
     filter1, filter2, filter3, filter4 = st.columns(4)
 
@@ -507,6 +782,7 @@ if not df.empty:
     selected_min_emails = filter2.selectbox("Minimum emails", [0, 1, 2, 3, 5], index=1)
     selected_min_phones = filter3.selectbox("Minimum phones", [0, 1, 2, 3, 5], index=0)
     selected_quality = filter4.selectbox("Lead quality", ["All", "High", "Medium", "Low", "Very Low"])
+
     filtered_df = analytics_df.copy()
 
     if selected_country != "All":
@@ -514,10 +790,70 @@ if not df.empty:
 
     filtered_df = filtered_df[filtered_df["email_count"] >= selected_min_emails]
     filtered_df = filtered_df[filtered_df["phone_count"] >= selected_min_phones]
+
     if selected_quality != "All":
         filtered_df = filtered_df[filtered_df["lead_quality"] == selected_quality]
+
+    filtered_df = filtered_df.copy()
+    filtered_df["opportunity_score"] = (
+        filtered_df["email_count"] * 3
+        + filtered_df["phone_count"] * 1
+        + filtered_df["lead_quality"].map({
+            "High": 3,
+            "Medium": 2,
+            "Low": 1,
+            "Very Low": 0,
+        }).fillna(0)
+    )
+
+    dashboard_df = prepare_dashboard_df(filtered_df)
+
     st.divider()
-    st.subheader("Lead intelligence")
+    st.markdown("## Lead Intelligence")
+    st.caption("AI-powered lead scoring and CRM readiness analysis")
+
+    if dashboard_df.empty:
+        st.warning("No records match the selected filters.")
+        st.stop()
+
+    st.markdown("### Executive KPIs")
+    render_kpis(dashboard_df)
+
+    st.divider()
+
+    render_top_opportunities(dashboard_df, top_n=15)
+
+    st.divider()
+
+    st.markdown("### Lead Quality Distribution")
+    quality_order = ["High", "Medium", "Low", "Very Low"]
+    quality_counts = (
+        filtered_df["lead_quality"]
+        .value_counts()
+        .reindex(quality_order, fill_value=0)
+    )
+    if quality_counts.sum() > 0:
+        st.bar_chart(quality_counts, height=220)
+    else:
+        st.info("No lead quality data available.")
+
+    col1, col2 = st.columns(2)
+    with col1:
+        render_readiness_coverage_chart(dashboard_df)
+    with col2:
+        render_opportunity_distribution(dashboard_df)
+
+    st.divider()
+    st.markdown("### Data Coverage")
+
+    coverage_data = pd.Series(
+        {
+            "Email Available": int((dashboard_df["email_count"] > 0).sum()),
+            "Phone Available": int((dashboard_df["phone_count"] > 0).sum()),
+            "LinkedIn Available": int(dashboard_df["has_linkedin"].sum()),
+        }
+    )
+    st.bar_chart(coverage_data, height=220)
 
     chart_col1, chart_col2 = st.columns(2)
 
@@ -529,9 +865,9 @@ if not df.empty:
             .sort_values(ascending=False)
             .head(10)
         )
-        st.markdown("**Top domains**")
+        st.markdown("**Top domains (by frequency)**")
         if not domain_counts.empty:
-            st.bar_chart(domain_counts)
+            st.bar_chart(domain_counts.sort_values(ascending=True), height=250)
         else:
             st.info("No domain data available for charting.")
 
@@ -545,21 +881,30 @@ if not df.empty:
         )
         st.markdown("**Country distribution**")
         if not country_counts.empty:
-            st.bar_chart(country_counts)
+            st.bar_chart(country_counts, height=250)
         else:
             st.info("No country data available for charting.")
 
     st.divider()
-    st.subheader("Results preview")
-    st.caption(f"Showing {len(filtered_df)} of {len(analytics_df)} records after filters.")
+    st.markdown("## Results Preview")
+    st.caption(
+        f"Showing {len(filtered_df)} of {len(analytics_df)} records after filters. "
+        "Clean, filtered dataset ready for export or CRM import."
+    )
 
-    preview_cols = [c for c in filtered_df.columns if c not in {"email_count", "phone_count", "domain"}]
+    preview_cols = [
+        c for c in filtered_df.columns
+        if c not in {"domain"}
+    ]
 
     preferred_preview_order = [
         "organization_name",
         "companyName",
         "lead_quality",
         "country",
+        "email_count",
+        "phone_count",
+        "opportunity_score",
         "emails",
         "phones",
         "linkedin",
@@ -567,13 +912,26 @@ if not df.empty:
         "finalUrl",
         "inputUrl",
     ]
-
     ordered_preview_cols = [c for c in preferred_preview_order if c in preview_cols]
     remaining_preview_cols = [c for c in preview_cols if c not in ordered_preview_cols]
     preview_cols = ordered_preview_cols + remaining_preview_cols
-    st.dataframe(filtered_df[preview_cols], use_container_width=True, height=420)
 
-    st.subheader("Downloads")
+    styled_df = (
+        filtered_df[preview_cols]
+        .style
+        .format({
+            "opportunity_score": "{:.1f}",
+            "email_count": "{:.0f}",
+            "phone_count": "{:.0f}",
+        })
+        .map(highlight_opportunity, subset=["opportunity_score"] if "opportunity_score" in filtered_df.columns else None)
+    )
+
+    st.dataframe(styled_df, use_container_width=True)
+
+    st.divider()
+    st.markdown("## Downloads")
+    st.caption("Export the filtered lead set in CSV or XLSX format.")
 
     export_df = filtered_df.copy()
     for col in export_df.columns:
@@ -581,6 +939,8 @@ if not df.empty:
 
     csv_bytes = df_to_csv_bytes(export_df)
     xlsx_bytes = df_to_xlsx_bytes(export_df)
+
+    st.markdown('<div class="section-card">', unsafe_allow_html=True)
 
     d1, d2 = st.columns(2)
     with d1:
@@ -600,11 +960,23 @@ if not df.empty:
             use_container_width=True,
         )
 
+    st.markdown("</div>", unsafe_allow_html=True)
+
     if st.session_state.get("last_saved_csv") or st.session_state.get("last_saved_xlsx"):
-        st.subheader("Local saved files")
+        st.divider()
+        st.markdown("## Local Saved Files")
+        st.caption("Files saved locally during the latest run.")
+
+        st.markdown('<div class="section-card">', unsafe_allow_html=True)
+
         if st.session_state.get("last_saved_csv"):
             st.code(st.session_state["last_saved_csv"])
         if st.session_state.get("last_saved_xlsx"):
             st.code(st.session_state["last_saved_xlsx"])
+
+        st.markdown("</div>", unsafe_allow_html=True)
+
 else:
     st.info("No results loaded yet. Run the Actor to fetch dataset items.")
+
+st.caption("Built with Streamlit + Apify for contact discovery, company intelligence, and CRM-ready exports.")

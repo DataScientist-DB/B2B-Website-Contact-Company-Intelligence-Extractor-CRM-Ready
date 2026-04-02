@@ -1,7 +1,8 @@
 streamlit
 pandas
-python-dotenv
-requests
+numpy
+matplotlib
 openpyxl
+python-dotenv
 xlsxwriter
 httpx
