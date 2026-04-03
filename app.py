@@ -14,10 +14,33 @@ from dotenv import load_dotenv
 from apify_api import ApifyClientLite
 from export_utils import df_to_csv_bytes, df_to_xlsx_bytes, pick_columns, safe_dataframe
 
-# -------------------------------------------------
-# LOAD ENV / SECRETS
-# -------------------------------------------------
+# -------------------------------
+# SECRETS HELPER
+# -------------------------------
+def get_secret(key: str, default: str = "") -> str:
+    import os
+    try:
+        return st.secrets.get(key, os.getenv(key, default))
+    except Exception:
+        return os.getenv(key, default)
+
+
+# -------------------------------
+# CONFIG
+# -------------------------------
+APP_PASSWORD = get_secret("APP_PASSWORD", "demo123")
+DEFAULT_TOKEN = get_secret("APIFY_TOKEN", "")
+DEFAULT_ACTOR_ID = get_secret("APIFY_ACTOR_ID", "gBBp9t5KjUcEt1ESS")
+# -------------------------------
+# TOKEN VALIDATION
+# -------------------------------
+token = DEFAULT_TOKEN
+
+if not token:
+    st.sidebar.error("Missing APIFY_TOKEN in .streamlit/secrets.toml or environment.")
+    st.stop()
 load_dotenv()
+
 
 
 def get_secret(name: str, default: str = "") -> str:
@@ -37,6 +60,9 @@ DEFAULT_ACTOR_ID = get_secret(
     "gBBp9t5KjUcEt1ESS",
 )
 
+token = DEFAULT_TOKEN
+if not token:
+    st.sidebar.error("Missing APIFY_TOKEN in .streamlit/secrets.toml or environment.")
 # -------------------------------------------------
 # CONFIG
 # -------------------------------------------------
@@ -594,7 +620,31 @@ st.caption("Secure demo environment — limited runs enabled")
 # -------------------------------------------------
 # SIDEBAR
 # -------------------------------------------------
+st.sidebar.divider()
+
+st.sidebar.subheader("⚙️ Run Settings")
+
+mode = st.sidebar.radio(
+    "Mode",
+    ["Live Run (Apify)", "Demo Mode"],
+    index=0,
+    key="run_mode_radio"
+)
+
+auto_save_local = st.sidebar.checkbox(
+    "Auto-save CSV/XLSX locally",
+    value=False,
+    key="auto_save_local_checkbox"
+)
+
+show_debug = st.sidebar.checkbox(
+    "Show debug panels",
+    value=False,
+    key="show_debug_checkbox"
+)
+
 st.sidebar.header("Apify Settings")
+
 
 token = DEFAULT_TOKEN
 if not token:
@@ -607,11 +657,34 @@ actor_id = st.sidebar.text_input(
 ).strip()
 
 st.sidebar.divider()
-st.sidebar.subheader("Run Options")
-auto_save_local = st.sidebar.checkbox("Auto-save CSV/XLSX locally", value=False)
-show_debug = st.sidebar.checkbox("Show debug panels", value=False)
-st.sidebar.caption("Tip: Put APP_PASSWORD, APIFY_TOKEN, and APIFY_ACTOR_ID into .streamlit/secrets.toml or Streamlit Cloud secrets.")
 
+st.sidebar.subheader("⚙️ Run Settings")
+
+# --- Mode ---
+mode = st.sidebar.radio(
+    "Mode",
+    ["Live Run (Apify)", "Demo Mode"],
+    index=0
+)
+
+# --- Execution Options ---
+st.sidebar.markdown("### 🔁 Execution")
+auto_run = st.sidebar.checkbox("Auto-run on load", value=False)
+auto_save_local = st.sidebar.checkbox("Auto-save CSV/XLSX locally", value=False)
+
+# --- Output Options ---
+st.sidebar.markdown("### 📦 Output")
+export_csv = st.sidebar.checkbox("Enable CSV export", value=True)
+export_xlsx = st.sidebar.checkbox("Enable Excel export", value=True)
+
+# --- Advanced ---
+with st.sidebar.expander("🛠 Advanced"):
+    show_debug = st.checkbox("Show debug panels", value=False)
+    max_results = st.number_input("Max results", min_value=1, max_value=1000, value=50)
+
+st.sidebar.caption(
+    "🔐 Tip: Set APP_PASSWORD, APIFY_TOKEN, and APIFY_ACTOR_ID in .streamlit/secrets.toml"
+)
 # -------------------------------------------------
 # SESSION STATE
 # -------------------------------------------------
@@ -655,7 +728,6 @@ with top_right:
     output_xlsx = st.checkbox("outputXlsx", value=True)
     push_empty_record = st.checkbox("pushEmptyRecord", value=False)
     timeout_minutes = st.number_input("Max wait time (minutes)", min_value=1, max_value=180, value=30, step=1)
-
 st.divider()
 st.markdown('<div class="section-card">', unsafe_allow_html=True)
 quick1, quick2, quick3, quick4 = st.columns(4)
@@ -669,18 +741,20 @@ with quick4:
     st.metric("Auto-save", "On" if auto_save_local else "Off")
 st.markdown("</div>", unsafe_allow_html=True)
 
-run_btn = st.button("▶ Run Data Extraction", type="primary", use_container_width=True)
-
 # -------------------------------------------------
 # RUN ACTOR
 # -------------------------------------------------
+st.info("Ready to extract leads from provided websites")
+
+run_btn = st.button("🚀 Run Data Extraction", use_container_width=True, key="run_data_extraction_btn")
+
 if run_btn:
+    st.write("Running extraction...")
     st.session_state["run_count"] += 1
 
     urls = normalize_urls(websites_text or "")
     urls, blocked = validate_urls(urls)
     actor_id = validate_actor_id(actor_id)
-
     if blocked:
         st.warning(
             "These URLs look like dashboards/social platforms and were skipped:\n\n"
@@ -839,13 +913,89 @@ if not df.empty:
     if dashboard_df.empty:
         st.warning("No records match the selected filters.")
         st.stop()
-
     st.markdown("### Executive KPIs")
     render_kpis(dashboard_df)
 
+    st.markdown("### 🤖 AI Insights")
+    st.info(
+        "Top companies show strong contact availability and high outreach readiness. Focus on high opportunity score targets first.")
+
+    # paste the upgraded Recommended Targets block here
+
     st.divider()
 
-    render_top_opportunities(dashboard_df, top_n=15)
+    st.markdown("### 🎯 Recommended Targets")
+
+    if not dashboard_df.empty:
+        # Work on a copy
+        recommendations_df = dashboard_df.copy()
+
+        # Optional: make sure numeric columns are numeric
+        for col in ["email_count", "phone_count", "opportunity_score"]:
+            if col in recommendations_df.columns:
+                recommendations_df[col] = pd.to_numeric(recommendations_df[col], errors="coerce").fillna(0)
+
+
+        # Recommendation reason
+        def build_reason(row):
+            reasons = []
+
+            if row.get("opportunity_score", 0) >= 80:
+                reasons.append("very high score")
+            elif row.get("opportunity_score", 0) >= 60:
+                reasons.append("strong score")
+
+            if row.get("email_count", 0) >= 2:
+                reasons.append("multiple emails found")
+            elif row.get("email_count", 0) >= 1:
+                reasons.append("email available")
+
+            if row.get("phone_count", 0) >= 1:
+                reasons.append("phone available")
+
+            if not reasons:
+                return "good candidate based on available company data"
+
+            return ", ".join(reasons)
+
+
+        recommendations_df["recommendation_reason"] = recommendations_df.apply(build_reason, axis=1)
+
+        top_targets = (
+            recommendations_df
+            .sort_values(["opportunity_score", "email_count", "phone_count"], ascending=[False, False, False])
+            .head(3)
+        )
+
+        st.success("Top 3 companies recommended for review based on score and contact richness.")
+
+        for i, (_, row) in enumerate(top_targets.iterrows(), start=1):
+            company = row.get("organization_name", "Unknown company")
+            country = row.get("country", "Unknown")
+            emails = int(row.get("email_count", 0))
+            phones = int(row.get("phone_count", 0))
+            score = float(row.get("opportunity_score", 0))
+            reason = row.get("recommendation_reason", "")
+
+            with st.container():
+                c1, c2, c3, c4 = st.columns([3, 1, 1, 1])
+
+                with c1:
+                    st.markdown(f"**{i}. {company}**")
+                    st.caption(f"{country} • {reason}")
+
+                with c2:
+                    st.metric("Score", f"{score:.0f}")
+
+                with c3:
+                    st.metric("Emails", emails)
+
+                with c4:
+                    st.metric("Phones", phones)
+
+                st.divider()
+    else:
+        st.warning("No data available yet. Run extraction to see recommendations.")
 
     st.divider()
 
