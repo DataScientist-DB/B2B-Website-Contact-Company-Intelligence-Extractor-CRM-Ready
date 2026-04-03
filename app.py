@@ -27,6 +27,10 @@ def get_secret(name: str, default: str = "") -> str:
         return os.getenv(name, default).strip()
 
 
+DEMO_MODE = False
+MAX_RUNS_PER_SESSION = 3
+APP_PASSWORD = get_secret("APP_PASSWORD", "demo123")
+
 DEFAULT_TOKEN = get_secret("APIFY_TOKEN", "")
 DEFAULT_ACTOR_ID = get_secret(
     "APIFY_ACTOR_ID",
@@ -328,9 +332,6 @@ def safe_pct(num: float, den: float) -> float:
 
 
 def prepare_dashboard_df(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Normalize current scraped dataset into dashboard-friendly fields.
-    """
     df = df.copy()
 
     if "company_name" not in df.columns:
@@ -358,12 +359,12 @@ def prepare_dashboard_df(df: pd.DataFrame) -> pd.DataFrame:
     if "has_linkedin" not in df.columns:
         if "linkedin" in df.columns:
             df["has_linkedin"] = (
-                df["linkedin"]
+                ~df["linkedin"]
                 .fillna("")
                 .astype(str)
                 .str.strip()
                 .str.lower()
-                .isin(["", "none", "nan"]) == False
+                .isin(["", "none", "nan"])
             )
         else:
             df["has_linkedin"] = False
@@ -450,20 +451,20 @@ def render_kpis(df: pd.DataFrame) -> None:
     phone_pct = safe_pct(with_phone, total)
     linkedin_pct = safe_pct(with_linkedin, total)
 
-    c1, c2, c3, c4 = st.columns(4)
+    c1, c2, c3 = st.columns(3)
+    c4, c5, c6 = st.columns(3)
+
     c1.metric("Total Companies", f"{total:,}")
     c2.metric("CRM Ready", f"{crm_ready_count:,}", f"{crm_ready_pct}%")
     c3.metric("With Phone", f"{with_phone:,}", f"{phone_pct}%")
     c4.metric("Avg Opportunity Score", avg_opportunity)
-
-    c5, c6 = st.columns(2)
     c5.metric("With LinkedIn", f"{with_linkedin:,}", f"{linkedin_pct}%")
     c6.metric("High Readiness", f"{int((df['readiness_tier'] == 'High').sum()):,}")
 
 
 def render_top_opportunities(df: pd.DataFrame, top_n: int = 15) -> None:
     st.subheader("Top Opportunities")
-    st.caption("Best leads ranked by contact coverage and opportunity score.")
+    st.caption("Ranked by contact richness + lead quality score")
 
     cols_needed = [
         "company_name",
@@ -540,12 +541,11 @@ def render_readiness_coverage_chart(df: pd.DataFrame) -> None:
 def render_opportunity_distribution(df: pd.DataFrame) -> None:
     st.subheader("Opportunity Score Distribution")
 
-    fig, ax = plt.subplots(figsize=(8, 4.5))
-    ax.hist(df["opportunity_score"].fillna(0), bins=20)
-    ax.set_xlabel("Opportunity Score")
-    ax.set_ylabel("Companies")
-    ax.set_title("Opportunity Score Distribution")
-    st.pyplot(fig)
+    score_counts = df["opportunity_score"].fillna(0).round(0).astype(int).value_counts().sort_index()
+    if score_counts.empty:
+        st.info("No opportunity score data available.")
+    else:
+        st.bar_chart(score_counts, height=300)
 
 
 def highlight_opportunity(val: Any) -> str:
@@ -577,15 +577,28 @@ st.markdown(
 )
 
 # -------------------------------------------------
+# ACCESS CONTROL
+# -------------------------------------------------
+password = st.text_input("Enter access password", type="password", key="app_password_input")
+
+if not APP_PASSWORD:
+    st.error("Missing APP_PASSWORD in .streamlit/secrets.toml or environment.")
+    st.stop()
+
+if password != APP_PASSWORD:
+    st.warning("🔒 Please enter password to access the dashboard")
+    st.stop()
+
+st.caption("Secure demo environment — limited runs enabled")
+
+# -------------------------------------------------
 # SIDEBAR
 # -------------------------------------------------
 st.sidebar.header("Apify Settings")
 
-token = st.sidebar.text_input(
-    "APIFY_TOKEN",
-    value=DEFAULT_TOKEN,
-    type="password",
-).strip()
+token = DEFAULT_TOKEN
+if not token:
+    st.sidebar.error("Missing APIFY_TOKEN in .streamlit/secrets.toml or environment.")
 
 actor_id = st.sidebar.text_input(
     "Actor ID (username~actor-name or raw Actor ID)",
@@ -595,9 +608,9 @@ actor_id = st.sidebar.text_input(
 
 st.sidebar.divider()
 st.sidebar.subheader("Run Options")
-auto_save_local = st.sidebar.checkbox("Auto-save CSV/XLSX locally", value=True)
+auto_save_local = st.sidebar.checkbox("Auto-save CSV/XLSX locally", value=False)
 show_debug = st.sidebar.checkbox("Show debug panels", value=False)
-st.sidebar.caption("Tip: Put APIFY_TOKEN and APIFY_ACTOR_ID into .env or Streamlit secrets to avoid retyping.")
+st.sidebar.caption("Tip: Put APP_PASSWORD, APIFY_TOKEN, and APIFY_ACTOR_ID into .streamlit/secrets.toml or Streamlit Cloud secrets.")
 
 # -------------------------------------------------
 # SESSION STATE
@@ -612,6 +625,12 @@ if "last_saved_csv" not in st.session_state:
     st.session_state["last_saved_csv"] = None
 if "last_saved_xlsx" not in st.session_state:
     st.session_state["last_saved_xlsx"] = None
+if "run_count" not in st.session_state:
+    st.session_state["run_count"] = 0
+
+if st.session_state["run_count"] >= MAX_RUNS_PER_SESSION:
+    st.error("Usage limit reached. Contact for full access.")
+    st.stop()
 
 # -------------------------------------------------
 # INPUT AREA
@@ -656,6 +675,8 @@ run_btn = st.button("▶ Run Data Extraction", type="primary", use_container_wid
 # RUN ACTOR
 # -------------------------------------------------
 if run_btn:
+    st.session_state["run_count"] += 1
+
     urls = normalize_urls(websites_text or "")
     urls, blocked = validate_urls(urls)
     actor_id = validate_actor_id(actor_id)
@@ -812,6 +833,9 @@ if not df.empty:
     st.markdown("## Lead Intelligence")
     st.caption("AI-powered lead scoring and CRM readiness analysis")
 
+    if len(filtered_df) < 5:
+        st.info("Demo dataset — real runs typically include hundreds of leads.")
+
     if dashboard_df.empty:
         st.warning("No records match the selected filters.")
         st.stop()
@@ -853,7 +877,10 @@ if not df.empty:
             "LinkedIn Available": int(dashboard_df["has_linkedin"].sum()),
         }
     )
-    st.bar_chart(coverage_data, height=220)
+    if coverage_data.sum() == 0:
+        st.info("No coverage data available.")
+    else:
+        st.bar_chart(coverage_data, height=220)
 
     chart_col1, chart_col2 = st.columns(2)
 
@@ -892,10 +919,7 @@ if not df.empty:
         "Clean, filtered dataset ready for export or CRM import."
     )
 
-    preview_cols = [
-        c for c in filtered_df.columns
-        if c not in {"domain"}
-    ]
+    preview_cols = [c for c in filtered_df.columns if c not in {"domain"}]
 
     preferred_preview_order = [
         "organization_name",
@@ -916,6 +940,8 @@ if not df.empty:
     remaining_preview_cols = [c for c in preview_cols if c not in ordered_preview_cols]
     preview_cols = ordered_preview_cols + remaining_preview_cols
 
+    style_subset = ["opportunity_score"] if "opportunity_score" in filtered_df.columns else []
+
     styled_df = (
         filtered_df[preview_cols]
         .style
@@ -924,7 +950,7 @@ if not df.empty:
             "email_count": "{:.0f}",
             "phone_count": "{:.0f}",
         })
-        .map(highlight_opportunity, subset=["opportunity_score"] if "opportunity_score" in filtered_df.columns else None)
+        .map(highlight_opportunity, subset=style_subset)
     )
 
     st.dataframe(styled_df, use_container_width=True)
